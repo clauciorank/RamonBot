@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw
+import tweepy
+import credentials
+import urllib.request
+import time
 
 
 def reading_image(image_file):
@@ -33,6 +37,56 @@ def reading_image(image_file):
 
     ramon.save('montagem.png')
 
+# def open_file(file):
+#     f = open(file)
+#
+# def save_file(file, id_tweet):
+
+
+def tweet():
+    auth = tweepy.OAuthHandler(credentials.API_key, credentials.API_secret_key)
+    auth.set_access_token(credentials.access_token, credentials.access_token_secret)
+    auth.secure = True
+    api = tweepy.API(auth)
+
+    try:
+        api.verify_credentials()
+        print('Connection Working')
+    except:
+        print('Connection Not Working')
+
+
+    mention = api.mentions_timeline()
+
+    for tweet in mention:
+        id_tweet = tweet.in_reply_to_status_id_str
+        id_mention = tweet.id_str
+
+        tweet = api.get_status(id_tweet)._json['extended_entities']['media']
+        media_url = tweet[0]['media_url']
+        file_extension = media_url[-3:]
+
+        try:
+            urllib.request.urlretrieve(media_url, 'image.' + file_extension)
+            reading_image('image.' + file_extension)
+            print('Image Downloaded and generated')
+        except:
+            print('Problem Downloading or making picture')
+
+        try:
+            api.create_favorite(id_mention)
+            media = api.media_upload('montagem.png')
+            api.update_status("Here is your Ramon", in_reply_to_status_id=id_mention,
+                              auto_populate_reply_metadata=True, media_ids=[media.media_id])
+            print('tweet replied')
+        except:
+            print('error uploading and posting tweet')
+
 
 if __name__ == '__main__':
-    reading_image('19923.jpg')
+    tweet()
+
+
+
+
+
